@@ -1,5 +1,9 @@
 {
   "name": "Staff CMS",
+  "font": "3D-ASCII",
+  "logoColor": "bold-green",
+  "lineChars": 8,
+  "padding": 5,
   "version": "1.0.0",
   "description": "A command-line CMS to manage employee info.",
   "main": "index.js",
