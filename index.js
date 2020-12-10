@@ -37,23 +37,25 @@ async function viewInfo() {
     choices: ['Employees', 'Roles', 'Departments'],
   });
 
-  const names = {
-    Employees: 'first_name, last_name',
-    Roles: 'title',
-    Departments: 'name',
-  };
-  const tables = {
-    Employees: 'employee',
-    Roles: 'role',
-    Departments: 'department',
+  const options = {
+    Employees: {
+      columns: 'first_name, last_name',
+      table: 'employee',
+    },
+    Roles: {
+      columns: 'title',
+      table: 'role',
+    },
+    Departments: {
+      columns: 'name',
+      table: 'department',
+    },
   };
 
-  // const placeholder1 = names[action];
-  // const placeholder2 = tables[action];
+  const { columns, table } = options[action];
 
-  const data = await connection.query('SELECT ? FROM ??', [
-    names[action],
-    tables[action],
+  const data = await connection.query('SELECT ' + columns + ' FROM ??', [
+    table,
   ]);
   console.table(data);
   init();
