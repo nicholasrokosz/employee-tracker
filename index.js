@@ -36,34 +36,16 @@ async function viewInfo() {
     message: 'Info about what?',
     choices: ['Employees', 'Roles', 'Departments'],
   });
-
-  //   const options = {
-  //     Employees: {
-  //       columns: 'first_name, last_name',
-  //       table: 'employee',
-  //     },
-  //     Roles: {
-  //       columns: 'title',
-  //       table: 'role',
-  //     },
-  //     Departments: {
-  //       columns: 'name',
-  //       table: 'department',
-  //     },
-  //   };
-
-  //   const { columns, table } = options[action];
-
   let query;
   if (action === 'Employees') {
-    query = `SELECT  e.first_name, e.last_name,
-    role.title, role.salary, department.name,
+    query = `(SELECT  e.first_name, e.last_name,
+    role.title, role.salary, CONCAT(department.name) AS department,
     IFNULL(CONCAT(m.first_name, ' ', m.last_name),'N/A') AS 'Manager'
     FROM employee e
     LEFT JOIN employee m ON m.id = e.manager_id
     INNER JOIN role ON e.role_id = role.id
     INNER JOIN department ON role.department_id = department.id
-    ORDER BY manager DESC`;
+    ORDER BY manager ASC) ORDER BY department`;
   } else if (action === 'Roles') {
     query = `SELECT title, salary, name AS department_name FROM role
     INNER JOIN department
@@ -72,7 +54,6 @@ async function viewInfo() {
   } else if (action === 'Departments') {
     query = `SELECT name FROM department`;
   }
-
   const data = await connection.query(query);
   console.table(data);
   init();
@@ -81,8 +62,6 @@ async function viewInfo() {
 async function addInfo() {
   const rolesArr = await connection.query('SELECT title, id FROM role');
   const depsArr = await connection.query('SELECT name, id FROM department');
-  // console.log(rolesArr);
-
   const {
     action,
     first,
@@ -139,7 +118,6 @@ async function addInfo() {
       when: answers => answers.action === 'Departments',
     },
   ]);
-
   const options = {
     Employees: {
       columns: 'first_name, last_name, role_id',
@@ -161,17 +139,10 @@ async function addInfo() {
       values: [name],
     },
   };
-
-  // console.log(options.Employees);
-
   const { columns, table, values } = options[action];
-
   const query = `INSERT INTO ${table} (${columns}) VALUES (${values
     .map(i => (typeof i === 'string' ? `"${i}"` : i))
     .join(', ')})`;
-
-  // console.log(query);
-
   const data = await connection.query(query);
   console.log(`New ${table} added!`);
   init();
@@ -182,7 +153,6 @@ async function updateInfo() {
   const empArr = await connection.query(
     'SELECT CONCAT(first_name, " ", last_name) AS full_name, role_id, id FROM employee'
   );
-  // console.log(rolesArr);
   const { person, role } = await inquirer.prompt([
     {
       name: 'person',
@@ -200,9 +170,7 @@ async function updateInfo() {
       choices: rolesArr.map(i => ({ name: i.title, value: i.id })),
     },
   ]);
-  // const empId = empArr.filter(i => i.full_name === person)[0]?.id;
   const query = `UPDATE employee SET role_id = ${role} WHERE id = ${person}`;
-  // console.log(query);
   const data = await connection.query(query);
   console.log(
     `${empArr[person - 1].full_name} is now a ${rolesArr[role - 1].title}!`
