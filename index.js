@@ -37,24 +37,43 @@ async function viewInfo() {
     choices: ['Employees', 'Roles', 'Departments'],
   });
 
-  const options = {
-    Employees: {
-      columns: 'first_name, last_name',
-      table: 'employee',
-    },
-    Roles: {
-      columns: 'title',
-      table: 'role',
-    },
-    Departments: {
-      columns: 'name',
-      table: 'department',
-    },
-  };
+  //   const options = {
+  //     Employees: {
+  //       columns: 'first_name, last_name',
+  //       table: 'employee',
+  //     },
+  //     Roles: {
+  //       columns: 'title',
+  //       table: 'role',
+  //     },
+  //     Departments: {
+  //       columns: 'name',
+  //       table: 'department',
+  //     },
+  //   };
 
-  const { columns, table } = options[action];
+  //   const { columns, table } = options[action];
 
-  const data = await connection.query(`SELECT ${columns} FROM ??`, [table]);
+  let query;
+  if (action === 'Employees') {
+    query = `SELECT  e.first_name, e.last_name,
+    role.title, role.salary, department.name,
+    IFNULL(CONCAT(m.first_name, ' ', m.last_name),'N/A') AS 'Manager'
+    FROM employee e
+    LEFT JOIN employee m ON m.id = e.manager_id
+    INNER JOIN role ON e.role_id = role.id
+    INNER JOIN department ON role.department_id = department.id
+    ORDER BY manager DESC`;
+  } else if (action === 'Roles') {
+    query = `SELECT title, salary, name AS department_name FROM role
+    INNER JOIN department
+    ON role.department_id = department.id
+    ORDER BY name ASC`;
+  } else if (action === 'Departments') {
+    query = `SELECT name FROM department`;
+  }
+
+  const data = await connection.query(query);
   console.table(data);
   init();
 }
@@ -155,5 +174,38 @@ async function addInfo() {
 
   const data = await connection.query(query);
   console.log(`New ${table} added!`);
+  init();
+}
+
+async function updateInfo() {
+  const rolesArr = await connection.query('SELECT title, id FROM role');
+  const empArr = await connection.query(
+    'SELECT CONCAT(first_name, " ", last_name) AS full_name, role_id, id FROM employee'
+  );
+  // console.log(rolesArr);
+  const { person, role } = await inquirer.prompt([
+    {
+      name: 'person',
+      type: 'list',
+      message: 'Select employee whose role will change: ',
+      choices: empArr.map(i => ({
+        name: `${i.full_name} (${rolesArr[i.role_id - 1].title})`,
+        value: i.id,
+      })),
+    },
+    {
+      name: 'role',
+      type: 'list',
+      message: "Select the employee's new role: ",
+      choices: rolesArr.map(i => ({ name: i.title, value: i.id })),
+    },
+  ]);
+  // const empId = empArr.filter(i => i.full_name === person)[0]?.id;
+  const query = `UPDATE employee SET role_id = ${role} WHERE id = ${person}`;
+  // console.log(query);
+  const data = await connection.query(query);
+  console.log(
+    `${empArr[person - 1].full_name} is now a ${rolesArr[role - 1].title}!`
+  );
   init();
 }
